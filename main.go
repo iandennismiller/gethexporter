@@ -59,6 +59,7 @@ func main() {
 	defer eth.Close()
 	geth.GethServer = os.Getenv("GETH")
 	watchingAddresses = os.Getenv("ADDRESSES")
+	
 	delay, _ = strconv.Atoi(os.Getenv("DELAY"))
 	if delay == 0 {
 		delay = 500
@@ -78,7 +79,7 @@ func main() {
 	log.Printf("Geth Exporter running on http://localhost:9090/metrics\n")
 
 	http.HandleFunc("/metrics", MetricsHttp)
-	err = http.ListenAndServe(":9090", nil)
+	err = http.ListenAndServe("0.0.0.0:9090", nil)
 	if err != nil {
 		panic(err)
 	}
