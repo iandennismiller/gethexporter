@@ -3,11 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"log"
 	"math/big"
 	"net/http"
@@ -15,6 +10,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 var (
@@ -23,6 +24,7 @@ var (
 	delay             int
 	watchingAddresses string
 	addresses         map[string]Address
+	listen            string
 )
 
 func init() {
@@ -59,7 +61,10 @@ func main() {
 	defer eth.Close()
 	geth.GethServer = os.Getenv("GETH")
 	watchingAddresses = os.Getenv("ADDRESSES")
-	
+	listen = os.Getenv("LISTEN")
+	if listen == "" {
+		listen = ":9090"
+	}
 	delay, _ = strconv.Atoi(os.Getenv("DELAY"))
 	if delay == 0 {
 		delay = 500
@@ -79,7 +84,7 @@ func main() {
 	log.Printf("Geth Exporter running on http://localhost:9090/metrics\n")
 
 	http.HandleFunc("/metrics", MetricsHttp)
-	err = http.ListenAndServe("0.0.0.0:9090", nil)
+	err = http.ListenAndServe(listen, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -110,8 +115,8 @@ func CalculateTotals(block *types.Block) {
 		geth.TotalEth.Add(geth.TotalEth, b.Value())
 	}
 
-	size := strings.Split(geth.CurrentBlock.Size().String(), " ")
-	geth.BlockSize = stringToFloat(size[0]) * 1000
+	// obtain current block size as float
+	geth.BlockSize = float64(geth.CurrentBlock.Size())
 }
 
 func Routine() {
@@ -156,7 +161,6 @@ func Routine() {
 	}
 }
 
-//
 // HTTP response handler for /metrics
 func MetricsHttp(w http.ResponseWriter, r *http.Request) {
 	var allOut []string
@@ -206,7 +210,6 @@ func stringToFloat(s string) float64 {
 	return amount
 }
 
-//
 // CONVERTS WEI TO ETH
 func ToEther(o *big.Int) *big.Float {
 	pul, int := big.NewFloat(0), big.NewFloat(0)
